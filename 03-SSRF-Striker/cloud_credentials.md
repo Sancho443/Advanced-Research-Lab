@@ -1,0 +1,3 @@
+# CLOUD_CREDENTIALS
+
+TODO: Document this.

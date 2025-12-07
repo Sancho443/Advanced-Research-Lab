@@ -1,0 +1,3 @@
+# METHODOLOGY
+
+TODO: Document this.
