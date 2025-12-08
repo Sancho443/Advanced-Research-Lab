@@ -87,17 +87,19 @@ class ArsenalConfig:
 # ———— Load from environment overrides (the pro move) ————
 def _load_config() -> ArsenalConfig:
     return ArsenalConfig(
-        TIMEOUT=int(os.getenv("ARSENAL_TIMEOUT", "10")),
-        RETRIES=int(os.getenv("ARSENAL_RETRIES", "3")),
-        BACKOFF=float(os.getenv("ARSENAL_BACKOFF", "1.5")),
+        TIMEOUT=int(os.getenv("ARSENAL_TIMEOUT", "10")),#time taken for the server to respond,,thats 10sec for now
+        RETRIES=int(os.getenv("ARSENAL_RETRIES", "3")),#number of times to retry the connection if it fails
+        BACKOFF=float(os.getenv("ARSENAL_BACKOFF", "1.5")),#Between those retries, it waits 1.5x longer each time.
         THREADS=int(os.getenv("ARSENAL_THREADS", "10")),
-        DELAY=float(os.getenv("ARSENAL_DELAY", "0.1")),
-        RANDOM_USER_AGENT=os.getenv("ARSENAL_RANDOM_UA", "true").lower() == "true",
-        VERIFY_SSL=os.getenv("ARSENAL_VERIFY_SSL", "false").lower() == "true",
-        LOG_FILE=os.getenv("ARSENAL_LOG_FILE", "arsenal.log"),
+        DELAY=float(os.getenv("ARSENAL_DELAY", "0.1")),#This is the Sleep Time between every single request.configure this so that you don't get banned
+        RANDOM_USER_AGENT=os.getenv("ARSENAL_RANDOM_UA", "true").lower() == "true",#Every request wears a different "Jersey." One looks like Chrome on Windows, the next looks like Safari on iPhone. Harder for the ref (WAF) to track you.
+        VERIFY_SSL=os.getenv("ARSENAL_VERIFY_SSL", "false").lower() == "true",#In a lab environment, it's common to use self-signed certificates. Setting VERIFY_SSL to false allows you to bypass SSL verification, preventing those annoying certificate warnings.
+        LOG_FILE=os.getenv("ARSENAL_LOG_FILE", "arsenal.log"),#This is the filename where the tool saves the receipts.
         USE_PROXY=os.getenv("ARSENAL_USE_PROXY", "false").lower() == "true",
-        PROXY_URL=os.getenv("ARSENAL_PROXY", "http://127.0.0.1:8080"),
+        PROXY_URL=os.getenv("ARSENAL_PROXY", "http://127.0.0.1:8080"),#
     )
+
+
 
 
 # Global config instance – import this everywhere

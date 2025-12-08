@@ -1,0 +1,7 @@
+﻿venv/
+__pycache__/
+*.pyc
+.idea/
+.env
+arsenal.log
+.pytest_cache/

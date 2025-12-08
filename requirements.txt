@@ -1,0 +1,15 @@
+# ———— Core Dependencies (The Starting XI) ————
+requests>=2.31.0      # The Engine. Handles all HTTP traffic.
+colorama>=0.4.6       # The Visuals. Makes logs green/red.
+urllib3>=2.0.0        # The Backbone. Handles SSL/Connection logic.
+
+# ———— Progress Bars (The Flair) ————
+tqdm>=4.66.0          # The Progress Bar. Makes scans look hacker-ish.
+
+# ———— Testing & CI (Professionalism) ————
+pytest>=8.3.0
+pytest-cov>=5.0.0
+
+# ———— Optional / Dev Tools (The Bench) ————
+# python-dotenv       # (Optional) If you want to load .env files later
+# pylint              # (Optional) For checking code quality
