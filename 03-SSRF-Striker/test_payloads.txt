@@ -1,0 +1,5 @@
+# Payload 1: Delays for 6 seconds (Should trigger Blind SSRF Alert)
+delay/6
+
+# Payload 2: Returns headers (Should prove Header Injection works)
+headers

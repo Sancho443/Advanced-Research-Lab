@@ -37,15 +37,39 @@ class Requester:
         return random.choice(self.DEFAULT_USER_AGENTS)
 
     def _build_headers(self, custom_headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+        # 1. Prepare Base Headers (Without User-Agent first)
         base_headers = {
-            "User-Agent": self._rotate_user_agent(),
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate, br",
             "Connection": "keep-alive",
             "DNT": "1",
         }
+
+        # 2. Get the Global Custom Headers (From CLI)
+        global_customs = {}
+        if hasattr(config, "CUSTOM_HEADERS") and config.CUSTOM_HEADERS:
+            global_customs = config.CUSTOM_HEADERS
+            logger.debug(f"Injected custom headers: {global_customs.keys()}")
+
+        # 3. Check if User provided a UA (Case Insensitive Check)
+        # We look at both global config keys AND local kwargs keys
+        all_keys = [k.lower() for k in list(global_customs.keys()) + list(base_headers.keys())]
+        
+        # If 'user-agent' is NOT in the custom headers, THEN we rotate
+        if "user-agent" not in all_keys:
+            base_headers["User-Agent"] = self._rotate_user_agent()
+        else:
+            logger.debug("Custom User-Agent detected. Rotation disabled.")
+
+        # 4. Merge Everything (Custom wins)
+        # Apply global config headers first
+        if global_customs:
+            base_headers.update(global_customs)
+        
+        # Apply local request overrides last (highest priority)
         if custom_headers:
             base_headers.update(custom_headers)
+
         return base_headers
 
     def request(self, method: str, url: str, **kwargs) -> Optional[requests.Response]:
