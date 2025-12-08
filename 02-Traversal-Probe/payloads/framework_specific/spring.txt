@@ -1,0 +1,52 @@
+# ———— THE GAME OVER ENDPOINTS (High Crit) ————
+# Downloads the server's RAM. Contains Session IDs, Passwords, AWS Keys.
+actuator/heapdump
+actuator/env
+actuator/configprops
+# Often allows RCE via JNDI injection
+jolokia
+actuator/jolokia
+
+# ———— Actuator Recon (The Map) ————
+actuator
+actuator/mappings
+actuator/beans
+actuator/health
+actuator/info
+actuator/loggers
+actuator/httptrace
+actuator/auditevents
+actuator/threaddump
+actuator/conditions
+actuator/scheduledtasks
+
+# ———— Gateway & Cloud (SSRF & Routes) ————
+# If exposed, you can see backend routes or route traffic internally
+actuator/gateway/routes
+actuator/gateway/globalfilters
+cloudfoundryapplication
+
+# ———— Database Consoles (RCE) ————
+h2-console
+console
+h2
+
+# ———— Docs & Swagger (The Instruction Manual) ————
+v2/api-docs
+v3/api-docs
+swagger-ui.html
+swagger-ui/index.html
+swagger-resources
+api-docs
+
+# ———— Config Leaks ————
+# Rare but deadly if served statically
+config/application.properties
+config/application.yml
+WEB-INF/web.xml
+
+# ———— Auth & Security ————
+login
+oauth2/authorization/google
+oauth2/authorization/github
+oauth2/token

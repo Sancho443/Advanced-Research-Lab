@@ -1,0 +1,58 @@
+# ———— THE GAME OVER FILES (High Crit) ————
+# Contains API Keys, DB Passwords, AWS Secrets.
+.env
+.env.local
+.env.production
+.env.test
+
+# ———— Dependency Leaks (Supply Chain) ————
+# Tells you exactly what libraries (and versions) they use.
+# Use this to look up CVEs for their specific library versions.
+package.json
+package-lock.json
+yarn.lock
+npm-debug.log
+yarn-error.log
+.npmrc
+.yarnrc
+
+# ———— Source Code Entry Points ————
+# If static file serving is broken, these download the backend code.
+server.js
+app.js
+main.js
+index.js
+routes.js
+controllers/
+
+# ———— Process Managers ————
+# PM2 config often contains environment variables.
+ecosystem.config.js
+pm2.json
+pm2.config.js
+
+# ———— Test Coverage Reports ————
+# Developers sometimes upload these. It's a FULL website of their source code.
+coverage/
+coverage/lcov-report/index.html
+test/
+tests/
+
+# ———— GraphQL (The Node.js Favorite) ————
+# Introspection queries allow you to map the entire DB schema.
+graphql
+graphiql
+graphql-playground
+api/graphql
+
+# ———— Metrics & Health ————
+# Prometheus metrics leak internal IP addresses and load info.
+metrics
+prometheus
+health
+status
+info
+
+# ———— Node Modules (Rare but Critical) ————
+# If this is exposed, you can read the source of every library.
+node_modules/

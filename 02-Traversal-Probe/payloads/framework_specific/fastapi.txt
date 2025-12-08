@@ -1,0 +1,57 @@
+# ———— THE GAME OVER FILES (High Crit) ————
+# This is the Holy Grail. It contains the schema for the ENTIRE API.
+# If you get this, you stop fuzzing and start attacking specific logic.
+openapi.json
+openapi.yaml
+api/openapi.json
+v1/openapi.json
+
+# ———— The Interactive Docs (Bypass Auth?) ————
+# Sometimes /docs is public even if the API needs a token.
+docs
+redoc
+docs/oauth2-redirect
+swagger
+swagger-ui.html
+
+# ———— Python & Environment (Secrets) ————
+# FastAPI apps are Python. They have the same weak spots.
+.env
+.env.prod
+.env.dev
+config.py
+settings.py
+
+# ———— Dependency Leaks ————
+# Knowing exactly what version of Pydantic or Starlette they use
+# lets you check for specific CVEs.
+requirements.txt
+pyproject.toml
+poetry.lock
+pipfile
+pipfile.lock
+
+# ———— Source Code Entry Points ————
+# Default filenames for FastAPI apps.
+main.py
+app.py
+run.py
+asgi.py
+
+# ———— Worker Configuration ————
+# Leaks how the server is deployed (Gunicorn/Uvicorn settings).
+gunicorn.conf.py
+uvicorn_config.json
+logging.conf
+alembic.ini
+
+# ———— Bytecode Leaks ————
+__pycache__/
+__pycache__/main.cpython-39.pyc
+__pycache__/main.cpython-310.pyc
+
+# ———— Starlette/Pydantic Specifics ————
+# FastAPI is built on Starlette. Check these debug endpoints.
+debug
+health
+metrics

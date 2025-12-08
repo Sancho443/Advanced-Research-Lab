@@ -1,0 +1,52 @@
+# ———— THE GAME OVER FILES (High Crit) ————
+# If you find a backup of config, you own the Database.
+wp-config.php.bak
+wp-config.php.old
+wp-config.php.save
+wp-config.php.swp
+wp-config.php~
+.wp-config.php.swp
+wp-config.bak
+
+# ———— The "White Screen" Leak ————
+# Developers leave this on to fix bugs. It leaks EVERYTHING.
+wp-content/debug.log
+wp-content/debug.log.old
+error_log
+wp-admin/error_log
+
+# ———— User Enumeration (Username Harvesting) ————
+# If these return JSON, you have the list of valid usernames to brute force.
+wp-json/wp/v2/users
+wp-json/wp/v2/users/1
+wp-json/wp/v2/users/2
+?author=1
+
+# ———— The Brute Force Gateway ————
+# Used for DDoS amplification and password guessing.
+xmlrpc.php
+
+# ———— Database Exports (Lazy Admins) ————
+# Often found in root or wp-content
+wp-content/backup-db.sql
+wp-content/db.sql
+wp-content/uploads/dump.sql
+database.sql
+db_backup.sql
+
+# ———— Core Version Leaks ————
+readme.html
+license.txt
+wp-admin/install.php
+wp-admin/upgrade.php
+
+# ———— Plugin Specifics (Common High Impact) ————
+# Only checking files that confirm the plugin AND might be vulnerable
+wp-content/plugins/wp-file-manager/readme.txt
+wp-content/plugins/elementor/readme.txt
+wp-content/plugins/woocommerce/readme.txt
+
+# ———— Installer Leftovers ————
+# Sometimes the installer script isn't deleted and allows re-install (Account Takeover)
+installer.php
+setup.php

@@ -1,0 +1,28 @@
+# ———— RCE & Debug (The "Ignition" Exploit) ————
+# If these return 200 or 405, the site is vulnerable to RCE.
+_ignition/execute-solution
+_ignition/health-check
+
+# ———— Developer Tools (Info Leaks) ————
+telescope/requests
+horizon/dashboard
+log-viewer/logs
+debugbar/open
+clockwork/app
+
+# ———— Storage & Logs (Data Leaks) ————
+storage/logs/laravel.log
+storage/logs/laravel.log.old
+storage/app/public/
+storage/framework/views/
+
+# ———— API & Auth ————
+api/user
+api/v1/user
+sanctum/csrf-cookie
+
+# ———— Configuration Leaks ————
+# Rare, but if the server is broken, these leak source code
+config/app.php
+config/database.php
+database/database.sqlite

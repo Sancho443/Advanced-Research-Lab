@@ -1,0 +1,45 @@
+# ———— THE GAME OVER FILES (High Crit) ————
+# If you download the DB, you have everyone's password hashes.
+db.sqlite3
+db.sqlite
+database.sqlite3
+# Source code leaks
+manage.py
+.env
+.env.local
+
+# ———— Debug Mode (RCE Potential) ————
+# The Django Debug Toolbar allows SQL execution and config viewing.
+__debug__
+__debug__/sql
+__debug__/sql_select
+
+# ———— Admin Panels ————
+admin/
+admin/login/
+django-admin/
+# If they renamed /admin, check /manager or /backend
+manager/
+backend/
+
+# ———— Configuration Leaks ————
+# If static files are misconfigured, you might read the settings.
+settings.py
+local_settings.py
+config/settings.py
+project/settings.py
+wsgi.py
+
+# ———— Auth & User Leaks ————
+# Sometimes leaks user emails or allows registration on closed sites
+accounts/signup/
+accounts/register/
+users/
+
+# ———— Static File Misconfigs ————
+# Sometimes developers put backups in static folders
+static/admin/
+media/
+uploads/
+backup/
+dump.sql
