@@ -9,7 +9,7 @@ from colorama import Fore, Style # <--- MOVED TO TOP (Global Scope)
 # Path Hack
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-from core import engine, logger, config, BANNER
+from core import engine, logger, config, get_banner
 from modules.ssrf import check_ssrf
 
 def parse_headers(header_string: str) -> dict:
@@ -51,8 +51,8 @@ def get_arg_parser():
     return parser
 
 if __name__ == "__main__":
-    print(f"{Fore.RED}{BANNER}{Style.RESET_ALL}")
-    print(f"{Fore.YELLOW}:: SSRF Striker v1.0 ::{Style.RESET_ALL}\n")
+    print(get_banner("SSRF Striker v1.0"))
+    
 
     parser = get_arg_parser()
     args = parser.parse_args()

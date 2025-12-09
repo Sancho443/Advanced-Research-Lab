@@ -12,21 +12,49 @@ import os
 from dataclasses import dataclass ,field
 from typing import Dict, Any
 from pathlib import Path
-
+from colorama import Fore, Style, init
+import random
 # ———— BANNER (Do NOT touch. This is culture.) ————
+# ———— BANNER (The Titan) ————
 BANNER = r"""
-   _____ __
-  / ___/____ _____ _____/ /_ ___ ____
-  \__ \/ __ `/ __ \/ ___/ __ \/ _ \/_ /
- ___/ / /_/ / / / / /__/ / / / __/ / /_
-/____/\__,_/_/ /_/\___/_/ /_/\___/ /___/
-       still in production
-"""
+ ██████╗ ███████╗██████╗     ████████╗███████╗ █████╗ ███╗   ███╗
+██╔══██╗██╔════╝██╔══██╗    ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║
+██████╔╝█████╗  ██║  ██║       ██║   █████╗  ███████║██╔████╔██║
+██╔══██╗██╔══╝  ██║  ██║       ██║   ██╔══╝  ██╔══██║██║╚██╔╝██║
+██║  ██║███████╗██████╔╝       ██║   ███████╗██║  ██║██║ ╚═╝ ██║
+╚═╝  ╚═╝╚══════╝╚═════╝        ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
+   ┌─────────────────────────────────────────────────────┐
+   │  >> Developer: SANCHEZ                              │
+   │  >> Version:  1.0.0                                 │
+   │  >> Status:   N/A chill                             │
+   │  >> Philosophy: "Build tools, not run them"         │
+   └─────────────────────────────────────────────────────┘ """
+
+# ———— ANIME QUOTES (The Vibe) ————
+QUOTES = [
+    "\"If we don't fight, we can't win. Fight. Fight.\" – Eren Yeager",
+    "\"I will keep moving forward, until I destroy my enemies.\" – Eren Yeager",
+    "\"The only way to gain freedom is to fight for it.\" – Eren Yeager",
+    "\"Dedicate your hearts! (Shinzo wo Sasageyo!)\" – Erwin Smith",
+    "\"This world is cruel, but also very beautiful.\" – Mikasa Ackerman"
+]
 
 def get_banner(tool_name: str = "Red Team Arsenal") -> str:
-    """Helper to generate a consistent banner for all tools."""
-    from colorama import Fore, Style
-    return f"{Fore.RED}{BANNER}{Style.RESET_ALL}\n    {Fore.YELLOW}:: {tool_name} ::{Style.RESET_ALL}\n"
+    """Helper to generate a consistent, colored banner with a random quote."""
+    
+    # 1. The Logo (Red)
+    logo = f"{Fore.RED}{BANNER}{Style.RESET_ALL}"
+
+    # 3. The Quote (Cyan & Italic if terminal supports it)
+    quote = f"{Fore.CYAN}{random.choice(QUOTES)}{Style.RESET_ALL}"
+     
+     # 2. The Tool Name (Yellow & Bold)
+    subtext = f"{Fore.YELLOW}{Style.BRIGHT}:: {tool_name} :: v2.0{Style.RESET_ALL}"
+    
+    # 4. The Border
+    border = f"{Fore.BLACK}{Style.BRIGHT}{'=' * 65}{Style.RESET_ALL}"
+    
+    return f"\n{logo}\n {quote}\n\n  {subtext}\n \n{border}\n"
 @dataclass(frozen=True, slots=True)
 class ArsenalConfig:
     """Immutable config with validation. Because mutable globals are for Spurs fans."""

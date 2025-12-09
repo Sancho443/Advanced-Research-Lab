@@ -19,7 +19,7 @@ init(autoreset=True)
 # Ensures we can import 'core' and 'modules' from the root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-from core import engine, logger, config, BANNER
+from core import engine, logger, config, get_banner
 from modules.traversal import check_traversal
 
 def parse_headers(header_string: str) -> dict:
@@ -53,15 +53,15 @@ def load_payloads(filepath: str | Path) -> list[str]:
     return payloads
 
 def get_arg_parser() -> argparse.ArgumentParser:
-    # 1. The Description (The Drip 💧)
-    # Notice we use {{PAYLOAD}} to escape the braces inside the f-string
+    #take note of this desc,,,causes some weird errors,,,don't know why
     desc = f"""
 {Fore.RED}      
    {Style.RESET_ALL}
-{Fore.YELLOW}Sanchez Path Traversal Probe v1.0{Style.RESET_ALL}
-"seek and you shall find"
-    """
+{Fore.YELLOW}{Style.RESET_ALL}
 
+    """
+# 1. The Description (The Drip 💧)
+    # Notice we use {{PAYLOAD}} to escape the braces inside the f-string
     # 2. The Examples (The Tactics Board 📋)
     examples = f"""{Fore.CYAN}EXAMPLES:{Style.RESET_ALL}
   {Fore.GREEN}# 1. The Standard Attack{Style.RESET_ALL}
@@ -104,7 +104,7 @@ def get_arg_parser() -> argparse.ArgumentParser:
 
 if __name__ == "__main__":
 
-    print(f"{Fore.RED}{BANNER}{Style.RESET_ALL}")
+    print(get_banner("seek and you shall find"))
 
     args = get_arg_parser().parse_args()
 
