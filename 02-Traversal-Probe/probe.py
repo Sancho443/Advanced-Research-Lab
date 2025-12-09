@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from colorama import Fore, Style, init
 
+
 # Initialize colorama for Windows users (prevents weird symbols)
 init(autoreset=True)
 
@@ -18,8 +19,27 @@ init(autoreset=True)
 # Ensures we can import 'core' and 'modules' from the root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-from core import engine, logger, config
+from core import engine, logger, config, BANNER
 from modules.traversal import check_traversal
+
+def parse_headers(header_string: str) -> dict:
+    """Parse multiple 'Key: Value' headers (Copy-Paste from Striker)."""
+    if not header_string:
+        return {}
+
+    headers = {}
+    # Split by newline, semicolon, or comma
+    parts = [p.strip() for p in header_string.replace(';', '\n').replace(',', '\n').split('\n') if p.strip()]
+
+    for part in parts:
+        if ':' not in part:
+            continue
+        key, value = part.split(":", 1)
+        headers[key.strip()] = value.strip()
+        # Log the injection so we know it worked
+        logger.info(f"💉 Injected header → {Fore.CYAN}{key.strip()}: {value.strip()[:30]}...{Style.RESET_ALL}")
+
+    return headers 
 
 def load_payloads(filepath: str | Path) -> list[str]:
     """Load and clean payloads from wordlist."""
@@ -36,11 +56,8 @@ def get_arg_parser() -> argparse.ArgumentParser:
     # 1. The Description (The Drip 💧)
     # Notice we use {{PAYLOAD}} to escape the braces inside the f-string
     desc = f"""
-{Fore.RED}    ____             __       
-   / __ \_________  / /_  ___ 
-  / /_/ / ___/ __ \/ __ \/ _ \\
- / ____/ /  / /_/ / /_/ /  __/
-/_/   /_/   \____/_.___/\___/ {Style.RESET_ALL}
+{Fore.RED}      
+   {Style.RESET_ALL}
 {Fore.YELLOW}Sanchez Path Traversal Probe v1.0{Style.RESET_ALL}
 "seek and you shall find"
     """
@@ -70,6 +87,10 @@ def get_arg_parser() -> argparse.ArgumentParser:
                         help="Target URL. Use {PAYLOAD} as the injection marker.")
     target_group.add_argument("-w", "--wordlist", required=True, 
                         help="Path to the payload wordlist.")
+    # 👇 NEW: Auth Support
+    target_group.add_argument("--header", "--headers", dest="headers", action="append", default=[],
+                        help="Add header(s). Ex: --header 'Cookie: id=1'")
+    
 
     tactics_group = parser.add_argument_group(f'{Fore.BLUE}TACTICS{Style.RESET_ALL}')
     tactics_group.add_argument("--delay", type=float, 
@@ -83,6 +104,8 @@ def get_arg_parser() -> argparse.ArgumentParser:
 
 if __name__ == "__main__":
 
+    print(f"{Fore.RED}{BANNER}{Style.RESET_ALL}")
+
     args = get_arg_parser().parse_args()
 
     # ———— TACTICAL OVERRIDES ————
@@ -93,6 +116,14 @@ if __name__ == "__main__":
     if args.threads:
         object.__setattr__(config, "THREADS", args.threads)
         logger.info(f"Threads → {args.threads} (full send)")
+# 👇 NEW: HEADER INJECTION LOGIC
+    if args.headers:
+        all_headers = {}
+        for h in args.headers:
+            all_headers.update(parse_headers(h))
+        
+        # Inject into Global Config
+        object.__setattr__(config, "CUSTOM_HEADERS", all_headers)
 
     logger.info(f"Target locked: {args.url}")
 
