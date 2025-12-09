@@ -8,6 +8,8 @@ wp-config.php~
 .wp-config.php.swp
 wp-config.bak
 
+
+# python probe.py -u "http://poaplace.co.ke{PAYLOAD}" -w payloads/framework_specific wordpress.txt --delay 2.0 -t 10
 # ———— The "White Screen" Leak ————
 # Developers leave this on to fix bugs. It leaks EVERYTHING.
 wp-content/debug.log

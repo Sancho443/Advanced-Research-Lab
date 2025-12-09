@@ -4,7 +4,7 @@
 from .requester import Requester
 
 # Expose the Config dictionary
-from .config import CONFIG,BANNER
+from .config import CONFIG,BANNER,get_banner
 
 # Expose the Logger (We need to build this next to make this import work!)
 from .logger import logger
@@ -26,6 +26,7 @@ __all__ = [
     "session",
     "engine",
     "BANNER",
+    "get_banner"
 ]
 
 # ← ADD THIS MAGIC LINE
