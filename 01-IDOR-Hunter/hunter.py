@@ -121,7 +121,7 @@ def establish_baseline(url: str, method: str, data: Optional[str]) -> Optional[s
 
 def get_arg_parser() -> argparse.ArgumentParser:
     desc = get_banner("IDOR / BOLA Hunter v2")
-    
+    #print(f"{Fore.RED}{config.BANNER}{Style.RESET_ALL}")
     parser = argparse.ArgumentParser(description=desc, formatter_class=argparse.RawTextHelpFormatter)
 
     # Target
