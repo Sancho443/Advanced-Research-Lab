@@ -56,14 +56,20 @@ def parse_headers_and_cookies(header_list: list) -> tuple[dict, dict]:
     return headers, cookies
 
 def load_payloads(filepath: str | Path) -> list[str]:
-    """Load and clean payloads."""
+    """Load and clean payloads from wordlist (Ignoring comments)."""
     path = Path(filepath).expanduser().resolve()
     if not path.is_file():
         logger.critical(f"Wordlist missing: {path}")
         sys.exit(1)
 
-    payloads = [line.strip() for line in path.read_text().splitlines() if line.strip()]
-    logger.info(f"Loaded {len(payloads):,} payloads ← {path.name}")
+    # Sanchez Fix: We filter out lines that start with '#'
+    payloads = [
+        line.strip() 
+        for line in path.read_text().splitlines() 
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    
+    logger.info(f"Loaded {len(payloads):,} active payloads ← {path.name}")
     return payloads
 
 def get_arg_parser() -> argparse.ArgumentParser:

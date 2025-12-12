@@ -51,7 +51,3 @@ data://text/plain;base64,PD9waHAgc3lzdGVtKCRfR0VUWydjbWQnXSk7ID8+
 # [SECTION 9: The "Log Poisoning" (Windows Targets)]
 c:\xampp\apache\logs\access.log
 c:\wamp\logs\access.log
-
-#lab.py
-#access.log
-#requirements.txt

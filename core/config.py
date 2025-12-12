@@ -133,7 +133,7 @@ def _load_config() -> ArsenalConfig:
         RANDOM_USER_AGENT=os.getenv("ARSENAL_RANDOM_UA", "true").lower() == "true",#Every request wears a different "Jersey." One looks like Chrome on Windows, the next looks like Safari on iPhone. Harder for the ref (WAF) to track you.
         VERIFY_SSL=os.getenv("ARSENAL_VERIFY_SSL", "false").lower() == "true",#In a lab environment, it's common to use self-signed certificates. Setting VERIFY_SSL to false allows you to bypass SSL verification, preventing those annoying certificate warnings.
         LOG_FILE=os.getenv("ARSENAL_LOG_FILE", "arsenal.log"),#This is the filename where the tool saves the receipts.
-        USE_PROXY=os.getenv("ARSENAL_USE_PROXY", "false").lower() == "true",
+        USE_PROXY=os.getenv("ARSENAL_USE_PROXY", "true").lower() == "true",
         PROXY_URL=os.getenv("ARSENAL_PROXY", "http://127.0.0.1:8080"),#
     )
 
