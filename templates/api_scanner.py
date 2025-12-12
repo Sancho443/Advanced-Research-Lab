@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""
+Module: API Scanner (The Midfield Maestro)
+Purpose: Discovery of REST/GraphQL endpoints.
+"""
+import sys
+from pathlib import Path
+
+# ———— IMPORT FIX ————
+sys.path.append(str(Path(__file__).resolve().parent)) 
+from base_template import get_base_parser, run_scan
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+from core import logger
+
+def check(path: str, base_url: str, req, **kwargs) -> str | None:
+    """
+    Checks if an API endpoint exists.
+    """
+    # Clean up the URL join to avoid double slashes
+    url = base_url.rstrip("/") + "/" + path.lstrip("/")
+    
+    # [TACTIC]: APIs expect JSON. We must dress the part.
+    # We allow the user to override, but we set a smart default.
+    headers = kwargs.get("headers", {}).copy()
+    if "Content-Type" not in headers:
+        headers["Content-Type"] = "application/json"
+    if "Accept" not in headers:
+        headers["Accept"] = "application/json"
+
+    try:
+        # We assume GET for discovery, but real API hacking involves POST too.
+        # Ideally, we'd check OPTIONS or POST if GET fails, but let's keep it fast.
+        res = req.get(url, headers=headers, allow_redirects=False)
+        
+        if not res: return None
+
+        # [VAR CHECK]: Intelligent Detection 🧠
+        
+        # 1. The Holy Grail (200 OK with JSON)
+        is_json = "application/json" in res.headers.get("content-type", "")
+        if res.status_code == 200:
+            if is_json or res.text.strip().startswith(("{", "[")):
+                return f"💎 API ENDPOINT: {url} (200 OK)"
+            
+            # Swagger/OpenAPI docs often return HTML/YAML but are critical hits
+            if "swagger" in res.text.lower() or "openapi" in res.text.lower():
+                return f"📜 DOCUMENTATION: {url} (Swagger Found)"
+
+        # 2. The Locked Doors (401/403) -> Means the endpoint EXISTS!
+        if res.status_code in [401, 403]:
+            # Filter out generic WAF blocks (usually 403 with HTML body)
+            if is_json:
+                return f"🔒 PROTECTED API: {url} ({res.status_code})"
+
+        # 3. Method Hints (405) -> "Don't GET, try POST"
+        if res.status_code == 405:
+            return f"🛑 METHOD NOT ALLOWED: {url} (Try POST?)"
+
+    except Exception:
+        pass
+    
+    return None
+
+def main():
+    parser = get_base_parser("API SCANNER")
+    # API scanning almost ALWAYS needs a wordlist (common.txt, swagger.txt)
+    # We can rely on the base parser's -w, but let's ensure it's validated there.
+    
+    args = parser.parse_args()
+    
+    # Check if wordlist was provided (since base makes it optional)
+    if not args.wordlist:
+        logger.critical("❌ API Scanning requires a wordlist (-w)!")
+        sys.exit(1)
+        
+    run_scan("API SCANNER", check, args)
+
+if __name__ == "__main__":
+    main()
