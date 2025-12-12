@@ -18,6 +18,7 @@ init(autoreset=True)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from core import engine, logger, config, get_banner
+config.FORCE_HTTP2 = True
 # We import the "Total Football" version of check_traversal
 from modules.traversal import check_traversal
 
@@ -129,10 +130,10 @@ if __name__ == "__main__":
 
     # ———— CONFIG SETUP ————
     if args.delay:
-        object.__setattr__(config, "DELAY", args.delay)
+        config.DELAY = args.delay
     
     if args.threads:
-        object.__setattr__(config, "THREADS", args.threads)
+        config.THREADS = args.threads
 
     # ———— PARSE HEADERS & COOKIES ————
     # We parse them here to pass them EXPLICITLY to the engine

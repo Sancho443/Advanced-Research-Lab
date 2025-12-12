@@ -1,5 +1,9 @@
 from core import Requester, logger
 from typing import Optional, Dict, Any
+import urllib.parse
+
+# This keeps the HTTP/2 connection open for all threads to share!
+req = Requester()
 
 def check_traversal(
     payload: str,
@@ -17,6 +21,7 @@ def check_traversal(
     # ———— 1. Build Target URL ————
     target = base_url
     if "{PAYLOAD}" in base_url:
+        encoded_payload = urllib.parse.quote(payload, safe='/')
         target = base_url.replace("{PAYLOAD}", payload)
 
     # ———— 2. Prepare Data & Method ————
@@ -54,7 +59,11 @@ def check_traversal(
         effective_headers.setdefault("Content-Type", "application/x-www-form-urlencoded")
 
     # ———— 5. Fire the Shot ————
-    req = Requester()
+    #req = Requester()
+    # SANCHEZ DEBUG: Show me the exact target!
+    if "passwd" in target or "boot.ini" in target: # Only print for interesting ones to avoid spam
+        logger.debug(f"🔫 SHOOTING: {target}")
+
     try:
         if effective_method == "POST":
             res = req.post(

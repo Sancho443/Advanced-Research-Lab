@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Module: Requester
 # Author: Sanchez (now officially undroppable)
+# Handles HTTP, Proxies, User-Agents, Headers automatically.
 
 import random
 import time
@@ -9,6 +10,21 @@ import requests
 from typing import Optional, Dict, Any
 from core.config import config
 from .logger import logger
+
+
+# ———— HTTP/2 UPGRADE (2025 EDITION) ————
+try:
+    import httpx
+    from httpx import Response as HttpxResponse
+    HTTP2_AVAILABLE = True
+    logger.info("HTTP/2 engine loaded → httpx")
+except ImportError:
+    HTTP2_AVAILABLE = False
+    logger.warning("httpx not installed → HTTP/1.1 only (run: pip install 'httpx[http2]')")
+
+# Optional: Allow forcing HTTP/2 via config (for Cloudflare/Akamai bypass)
+FORCE_HTTP2 = getattr(config, "FORCE_HTTP2", False)
+
 
 # Silence SSL warnings only in lab mode
 if not config.VERIFY_SSL:
@@ -30,6 +46,26 @@ class Requester:
     def __init__(self):
         self.session = requests.Session()
         self.config = config
+        
+        # ———— SANCHEZ FIX: Persistent HTTP/2 Client ————
+        self.h2_client = None
+        if HTTP2_AVAILABLE:
+            try:
+                # 1. Prepare Proxy for HTTPX (It demands a string, not a dict!)
+                # httpx >= 0.24.0 uses 'proxy' (singular)
+                h2_proxy = config.PROXY_URL if config.USE_PROXY else None
+
+                self.h2_client = httpx.Client(
+                    http2=True,
+                    verify=config.VERIFY_SSL,
+                    proxy=h2_proxy,                # <--- CHANGED FROM proxies=config.proxies
+                    follow_redirects=False,
+                    timeout=getattr(config, "TIMEOUT", 10),
+                    trust_env=False
+                )
+            except Exception as e:
+                # This log will tell us if it crashes again
+                logger.warning(f"Could not init HTTP/2 engine: {e}")
 
     def _rotate_user_agent(self) -> str:
         if not self.config.RANDOM_USER_AGENT:
@@ -72,12 +108,34 @@ class Requester:
 
         return base_headers
 
-    def request(self, method: str, url: str, **kwargs) -> Optional[requests.Response]:
-        headers = self._build_headers(kwargs.pop("headers", None))
+    def request(self, method: str, url: str, **kwargs) -> Any:
+        # ———— SANCHEZ FIX: READ CONFIG LIVE! ————
+        # We ask the config object directly: "Are we forcing H2 right now?"
+        should_force_h2 = getattr(config, "FORCE_HTTP2", False)
 
+        # ———— HTTP/2 AUTO-UPGRADE ————
+        # Note: We use 'should_force_h2' instead of the global 'FORCE_HTTP2'
+        if HTTP2_AVAILABLE and (should_force_h2 or "h2" in url or "cloudflare" in url.lower()):
+            #return self._request_httpx(method, url, **kwargs) <--- BAD. Kills the fallback.
+            
+            # NEW: Try it, but check the result
+             response = self._request_httpx(method, url, **kwargs)
+             if response is not None:
+                 return response
+             
+             # If response is None, we implicitly "fall through" to the lines below!
+             logger.debug("⚠️ H2 failed, switching to HTTP/1.1...")
+        
+        
+        
+        # ———— LEGACY LOGIC (HTTP/1.1) ————
+        headers = self._build_headers(kwargs.pop("headers", None))
         # Merge config defaults with any local overrides (local wins)
         request_kwargs = self.config.requests_kwargs.copy()
         request_kwargs.update(kwargs)
+        if "allow_redirects" in kwargs: 
+            request_kwargs["allow_redirects"] = kwargs.pop("allow_redirects")
+          
 
         # Add delay for politeness/stealth
         if self.config.DELAY > 0 and method.upper() != "HEAD":
@@ -134,3 +192,32 @@ class Requester:
 
     def head(self, url: str, **kwargs) -> Optional[requests.Response]:
         return self.request("HEAD", url, **kwargs)
+    
+    def _request_httpx(self, method: str, url: str, **kwargs):
+        """Uses the persistent HTTP/2 engine."""
+        if not self.h2_client:
+            return None
+
+        try:
+            # 1. Header Logic (Keep your existing logic)
+            headers = self._build_headers(kwargs.pop("headers", None))
+            
+            # 2. Compatibility: HTTPX uses 'follow_redirects', Requests uses 'allow_redirects'
+            if "allow_redirects" in kwargs:
+                kwargs["follow_redirects"] = kwargs.pop("allow_redirects")
+
+            # 3. Fire the shot using the PERSISTENT client (self.h2_client)
+            response = self.h2_client.request(
+                method.upper(), 
+                url, 
+                headers=headers, 
+                **kwargs
+            )
+            
+            logger.info(f"⚡ HTTP/2 Success {response.status_code} → {url}")
+            return response
+
+        except Exception as e:
+            # If H2 fails, return None so the main loop falls back to HTTP/1.1
+            logger.debug(f"HTTP/2 miss ({e}), falling back...")
+            return None

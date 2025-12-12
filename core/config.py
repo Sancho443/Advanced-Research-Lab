@@ -56,7 +56,7 @@ def get_banner(tool_name: str = "Red Team Arsenal") -> str:
     border = f"{Fore.BLACK}{Style.BRIGHT}{'=' * 65}{Style.RESET_ALL}"
     
     return f"\n{logo}\n {quote}\n\n  {subtext}\n \n{border}\n"
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)#INITIALIZE DATACLASS WITH SLOTS FOR MEMORY EFFICIENCY
 class ArsenalConfig:
     """Immutable config with validation. Because mutable globals are for Spurs fans."""
 
@@ -85,6 +85,10 @@ class ArsenalConfig:
     CUSTOM_HEADERS: Dict[str, str] = field(default_factory=dict)
 
     CALLBACK_URL: Optional[str] = None
+
+    # ———— HTTP/2 CONTROL (2025 EDITION) ————
+    FORCE_HTTP2: bool = False                    # Force HTTP/2 globally (bypass Cloudflare/Akamai)
+    AUTO_HTTP2_CLOUDFLARE: bool = True           # Auto-enable HTTP/2 on known CDNs (smart mode)
 
     def __post_init__(self) -> None:
         """Validate everything on creation – no silent failures allowed."""
@@ -135,6 +139,9 @@ def _load_config() -> ArsenalConfig:
         LOG_FILE=os.getenv("ARSENAL_LOG_FILE", "arsenal.log"),#This is the filename where the tool saves the receipts.
         USE_PROXY=os.getenv("ARSENAL_USE_PROXY", "true").lower() == "true",
         PROXY_URL=os.getenv("ARSENAL_PROXY", "http://127.0.0.1:8080"),#
+
+        FORCE_HTTP2=os.getenv("ARSENAL_FORCE_HTTP2", "false").lower() == "true",
+        AUTO_HTTP2_CLOUDFLARE=os.getenv("ARSENAL_AUTO_HTTP2", "true").lower() == "true",
     )
 
 
