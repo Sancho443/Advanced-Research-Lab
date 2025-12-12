@@ -86,7 +86,17 @@ class Engine:
                             results.append(data)
                             # If using tqdm, we can write to side without breaking the bar
                             if HAS_TQDM:
-                                tqdm.write(f"✅ Hit: {data}") 
+                                tqdm.write(f"✅ Hit: {data}")
+                                 
+                            # ———— SANCHEZ GOLDEN GOAL LOGIC ————
+                            if config.STOP_ON_SUCCESS:
+                                logger.success("🏆 Golden Goal! Stopping match early.")
+                                executor.shutdown(wait=False) # Kill pending threads
+                                # Cancel remaining futures to stop them processing
+                                for f in future_to_target:
+                                    f.cancel()
+                                return results # Return immediately with the win
+                            # ———————————————————————————————————
                     except KeyboardInterrupt:
                         logger.critical("🛑 Scan cancelled by user.")
                         executor.shutdown(wait=False)

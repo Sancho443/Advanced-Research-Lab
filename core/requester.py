@@ -152,14 +152,28 @@ class Requester:
                     **request_kwargs
                 )
 
-                # Don't retry on client errors (except 429 rate limit)
-                if 400 <= response.status_code < 500 and response.status_code != 429:
-                    logger.warning(f"Client error {response.status_code} on {url}")
-                    return response
+                # ———— SANCHEZ TACTIC: NO WHISTLE ————
+                # We don't raise_for_status(). 
+                # 500s/504s are valid responses in hacking!
+                
+                if response.status_code == 429:
+                    logger.warning(f"Rate limited (429) on {url} – backing off...")
+                    # We actually want to retry 429s, so we raise an exception to trigger the retry loop
+                    raise requests.exceptions.HTTPError(response=response)
+                
+                # For everything else (200, 404, 500, 504)... JUST RETURN IT.
+                if 200 <= response.status_code < 300:
+                    logger.info(f"✅ HTTP/1.1 {response.status_code} → {url}")
+                elif response.status_code >= 500:
+                    # Log 5xx as Warnings (Orange), not Errors (Red)
+                    logger.warning(f"⚠️ Server Fumbled (HTTP {response.status_code}) → {url}")
+                else:
+                    logger.debug(f"🧱 HTTP/1.1 {response.status_code} → {url}")
 
-                response.raise_for_status()
-                logger.info(f"Success {response.status_code} → {url}")
                 return response
+
+                
+            
 
             except requests.exceptions.Timeout:
                 logger.error(f"Timeout on {url} (attempt {attempt + 1})")

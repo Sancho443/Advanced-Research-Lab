@@ -80,6 +80,10 @@ class ArsenalConfig:
     USE_PROXY: bool = False
     PROXY_URL: str = "http://127.0.0.1:8080"
 
+
+    # ———— TACTICAL STOP ————
+    STOP_ON_SUCCESS: bool = False  # If True, stops after first hit
+
     # 💉 Header Injection (The new signing)
     # We use default_factory=dict so every instance gets a fresh dictionary
     CUSTOM_HEADERS: Dict[str, str] = field(default_factory=dict)
