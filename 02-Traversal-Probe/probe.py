@@ -119,6 +119,8 @@ def get_arg_parser() -> argparse.ArgumentParser:
                         help="Delay between requests (seconds).")
     tactics_group.add_argument("-t", "--threads", type=int, default=10,
                         help="Concurrency level.")
+    tactics_group.add_argument("--stop", action="store_true", 
+                               help="Stop scanning immediately after finding a vulnerability (Golden Goal).")
 
     return parser
 
@@ -145,7 +147,10 @@ if __name__ == "__main__":
     if not payloads:
         logger.error("No ammo loaded. Exiting.")
         sys.exit(1)
+    if args.stop:
+        config.STOP_ON_SUCCESS = True
 
+        
     # ———— KICK OFF ————
     # NOTE: We assume engine.run passes **kwargs to the task_function (check_traversal)
     # This is how we pass the static headers/cookies to every request!
