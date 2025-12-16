@@ -33,7 +33,8 @@ def get_base_parser(tool_name: str) -> argparse.ArgumentParser:
     g_tactics.add_argument("--delay", type=float, default=0.0, help="Delay in seconds")
     g_tactics.add_argument("--h2", action="store_true", help="Force HTTP/2 (Ferrari Mode)")
     g_tactics.add_argument("--stop", action="store_true", help="🏆 Golden Goal: Stop on first hit")
-    g_tactics.add_argument("-H", "--header", action="append", default=[], help="Custom headers")
+    # SANCHEZ FIX: Added dest="headers" so args.headers works!
+    g_tactics.add_argument("-H", "--header", action="append", dest="headers", default=[], help="Custom headers")
     
     # OUTPUT
     g_output = parser.add_argument_group('💾 Output')
