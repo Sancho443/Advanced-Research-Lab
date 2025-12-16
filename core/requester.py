@@ -46,6 +46,17 @@ class Requester:
     def __init__(self):
         self.session = requests.Session()
         self.config = config
+        # ———— BRIDGE 1: HTTP/1.1 (Requests) ————
+        if config.USE_PROXY:
+            proxies = {
+                "http": config.PROXY_URL,
+                "https": config.PROXY_URL,
+            }
+            self.session.proxies.update(proxies)
+            self.session.verify = False # REQUIRED for Burp
+
+            logger.warning(f"⚠️ Requester (HTTP/1.1) routed via {config.PROXY_URL}")
+        
         
         # ———— SANCHEZ FIX: Persistent HTTP/2 Client ————
         self.h2_client = None
