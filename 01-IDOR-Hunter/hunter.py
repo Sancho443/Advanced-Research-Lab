@@ -9,6 +9,7 @@ from pathlib import Path
 import json
 import requests
 from difflib import SequenceMatcher
+import argparse
 from typing import List, Tuple, Optional, Dict
 from urllib.parse import urljoin
 import urllib3
@@ -42,8 +43,8 @@ class SessionManager:
         # 1. Initialize the Central Engine (Handles Proxies, UA, SSL, H2 automatically)
         self.req = Requester()
         
-        # 2. Inject the specific 'Match Day' Tactics (Cookies & Headers from CLI)
-        self.req.session.cookies.update(cookies)
+       # NEW (Uses the methods we just wrote)
+        self.req.update_cookies(cookies)
         self.req.session.headers.update(extra_headers)
         
         self.refresh_config = refresh_config
@@ -161,10 +162,14 @@ def check_idor(test_case: TestCase, session: SessionManager,
     """
     template_url, param, payload = test_case
     test_url = template_url.replace("%7BID%7D", payload).replace("{ID}", payload)
-
+# Note: allow_redirects=False prevents 302 login redirects from fooling us
     res = session.get(test_url, allow_redirects=False)
     if not res:
         return None
+    
+    
+
+    
 
     # 1. Status Code Check (The obvious bypass)
     # If baseline was 403 (forbidden) and this is 200 (OK), that's a goal.
@@ -199,27 +204,38 @@ def check_idor(test_case: TestCase, session: SessionManager,
         # > 0.98: It's virtually the same page (likely False Positive or simple reflection).
         # < 0.60: It's totally different (likely a custom 404 page or redirect to home).
         # 0.60 - 0.98: The Structure matches, but content is different. THIS IS THE ZONE.
-        
-        if 0.60 <= sim_ratio <= 0.98:
-            return {
-                "type": "IDOR (Content Leak)",
+            # 🚨 NEW RULE: If it's JSON and 200 OK, it's suspicious even if similarity is low!
+        # This catches cases where the user profile is totally different size/structure
+    content_type = res.headers.get("Content-Type", "").lower()
+    if "application/json" in content_type and 0.1 <= sim_ratio < 0.60:
+             return {
+                "type": "IDOR (JSON Anomaly)",
                 "url": test_url,
                 "parameter": param,
                 "payload": payload,
-                "evidence": f"Similarity Ratio: {sim_ratio:.2f} (Structure matches, content differs)",
-                "confidence": "high"
+                "evidence": f"Valid JSON (200 OK) but low similarity ({sim_ratio:.2f})",
+                "confidence": "medium"
             }
+    if 0.60 <= sim_ratio <= 0.98:
+        return {
+            "type": "IDOR (Content Leak)",
+            "url": test_url,
+            "parameter": param,
+            "payload": payload,
+            "evidence": f"Similarity Ratio: {sim_ratio:.2f} (Structure matches, content differs)",
+            "confidence": "high"
+        }
         
         # Optional: Catch weird outliers if size diff is massive
-        if abs(len(res.text) - len(baseline_res.text)) > 500 and sim_ratio < 0.60:
-             return {
-                "type": "Anomaly (Low Similarity)",
-                "url": test_url,
-                "parameter": param,
-                "payload": payload,
-                "evidence": f"Similarity {sim_ratio:.2f} but valid 200 OK",
-                "confidence": "low"
-            }
+    if abs(len(res.text) - len(baseline_res.text)) > 500 and sim_ratio < 0.60:
+         return {
+            "type": "Anomaly (Low Similarity)",
+            "url": test_url,
+            "parameter": param,
+            "payload": payload,
+            "evidence": f"Similarity {sim_ratio:.2f} but valid 200 OK",
+            "confidence": "low"
+        }
 
     return None
 
@@ -232,33 +248,87 @@ def deduplicate_findings(findings: List[Finding]) -> List[Finding]:
 
 
 def main():
-    parser = get_base_parser("IDOR HUNTER - VVD Edition")
-    parser.add_argument("--cookie", required=True,
-                        help="Raw cookies OR path to cookies.txt")
-   # parser.add_argument("--header", action="append", default=[],
-    #                    help="Extra headers, e.g. 'Authorization: Bearer xyz'")
-    parser.add_argument("--refresh-url", help="URL to keep session alive (e.g. /api/me)")
-    parser.add_argument("--refresh-method", default="GET", choices=["GET", "POST"])
-    parser.add_argument("--refresh-data", help="JSON for POST refresh")
-    parser.add_argument("--login-url", help="Fallback full login URL")
-    parser.add_argument("--login-data", help="Fallback login JSON")
-    parser.add_argument("--baseline-url", help="Explicit own-resource URL (e.g. your own profile)")
-    args = parser.parse_args()
+    # 1. Use a custom formatter to widen the gap (max_help_position=52)
+    # This prevents the description from wrapping to the next line too early
+    formatter = lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=52)
+    
+    parser = argparse.ArgumentParser(
+        description=get_banner("IDOR HUNTER - VVD Edition"),
+        formatter_class=formatter,
+        usage="python hunter.py -u URL [options]"
+    )
 
-    print(get_banner("IDOR HUNTER - VVD Edition"))
+    # ———— 🔐 AUTHENTICATION GROUP (New!) ————
+    # We move the heavy logic here so it doesn't clutter the top
+    auth_group = parser.add_argument_group('🔐 Authentication & Session')
+    
+    auth_group.add_argument("--cookie", required=True, metavar="FILE/STR",
+                        help="Raw cookies OR path to cookies.txt")
+    auth_group.add_argument("--baseline-url", metavar="URL",
+                        help="Explicit own-resource URL (e.g. /api/me)")
+    
+    # Auto-Refresh Logic
+    auth_group.add_argument("--refresh-url", metavar="URL",
+                        help="URL to keep session alive")
+    auth_group.add_argument("--refresh-method", default="GET", choices=["GET", "POST"],
+                        help="Method for refresh (default: GET)")
+    auth_group.add_argument("--refresh-data", metavar="JSON",
+                        help="JSON data for POST refresh")
+    
+    # Fallback Login Logic
+    auth_group.add_argument("--login-url", metavar="URL",
+                        help="Fallback full login URL")
+    auth_group.add_argument("--login-data", metavar="JSON",
+                        help="Fallback login JSON data")
+
+    # ———— 🎯 TARGET GROUP ————
+    target_group = parser.add_argument_group('🎯 Target')
+    target_group.add_argument("-u", "--url", required=True, metavar="URL",
+                        help="Target URL (use {PAYLOAD} marker)")
+
+    # ———— 💣 PAYLOADS GROUP ————
+    payload_group = parser.add_argument_group('💣 Payloads')
+    payload_group.add_argument("-w", "--wordlist", metavar="FILE",
+                        help="Wordlist file (default: built-in numeric)")
+
+    # ———— 🛠️ TACTICS GROUP ————
+    tactics_group = parser.add_argument_group('🛠️ Tactics')
+    tactics_group.add_argument("-t", "--threads", type=int, default=10, metavar="N",
+                        help="Thread count (default: 10)")
+    tactics_group.add_argument("--delay", type=float, default=0.0, metavar="SEC",
+                        help="Delay between requests")
+    tactics_group.add_argument("--h2", action="store_true",
+                        help="Force HTTP/2 (Ferrari Mode)")
+    tactics_group.add_argument("--stop", action="store_true",
+                        help="🏆 Golden Goal: Stop on first hit")
+    
+    # Dest="headers" allows us to loop cleanly later
+    tactics_group.add_argument("-H", "--header", action="append", dest="headers", metavar="H",
+                        help="Custom header (e.g. 'Authorization: Bearer X')")
+
+    # ———— 💾 OUTPUT GROUP ————
+    output_group = parser.add_argument_group('💾 Output')
+    output_group.add_argument("-o", "--output", metavar="FILE",
+                        help="Save successful hits to file")
+
+    args = parser.parse_args()
+    
+
+
 
     config.THREADS = args.threads or 10
     config.DELAY = args.delay or 0.2
-    if args.h2:
-        config.FORCE_HTTP2 = True
+    
 
     # Parse cookies & headers
     cookies = parse_cookies(args.cookie)
     extra_headers = {}
-    for h in args.headers:
-        if ":" in h:
-            k, v = h.split(":", 1)
-            extra_headers[k.strip()] = v.strip()
+    # ✅ This checks if headers exist first (The Safety Net)
+    if args.headers:
+        for h in args.headers:
+            if ":" in h:
+                k, v = h.split(":", 1)
+                extra_headers[k.strip()] = v.strip()
 
     # Build refresh config
     refresh_config = {}
@@ -292,11 +362,12 @@ def main():
     # Baseline response (your own resource)
     baseline_url = args.baseline_url or args.url
     logger.info(f"Fetching baseline from: {baseline_url}")
-    baseline_res = session.get(baseline_url)
     
+    baseline_res = session.get(baseline_url)
     if not baseline_res:
         logger.error("Failed to retrieve baseline. Game Over.")
         return
+    
     logger.info(f"Baseline: {baseline_res.status_code} ({len(baseline_res.text):,} bytes)")
 
     # Build test cases

@@ -1,119 +1,130 @@
 #!/usr/bin/env python3
 """
-tests/test_core.py
-Author: Sanchez – The Architect
+Test Suite: The Backbone Fitness Test
+Author: Sanchez (QA Division)
+Run with: pytest tests/test_core.py -v
 """
-
-import pytest
 import sys
 import os
-from pathlib import Path
-import logging
+import pytest
+from unittest.mock import MagicMock, patch
 
-# Fix imports to find 'core'
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
+# ———— PATH HACK ————
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-from core import logger, config
+from core.config import config
 from core.requester import Requester
+from core.engine import engine
 
-def test_config_loaded():
-    """Tactics board check."""
+# ———— 1. CONFIG TESTS (The Brain) ————
+def test_config_is_mutable():
+    """Verify we can actually change tactics mid-game."""
+    original_threads = config.THREADS
+    
+    # Try to change it
+    config.THREADS = 99
+    assert config.THREADS == 99
+    
+    # Reset it
+    config.THREADS = original_threads
+
+def test_config_defaults():
+    """Verify the default tactics are sane."""
     assert config.TIMEOUT > 0
     assert config.RETRIES >= 0
-    assert isinstance(config.proxies, (dict, type(None)))
+    # We removed FORCE_HTTP2 because tls_client handles it automatically
+    # Let's check SSL instead
+    assert hasattr(config, "VERIFY_SSL")
 
-def test_logger_works(caplog):
-    """
-    Commentator check: We force the logger to speak to Pytest.
-    """
-    # 1. Force the logger to propagate messages to the root (where Pytest listens)
-    # This overrides any 'propagate=False' setting in your core/logger.py
-    logger.propagate = True
-    
-    # 2. Set the capture level
-    caplog.set_level(logging.INFO)
-    
-    # 3. Make the noise
-    test_msg = "SANCHEZ_WAS_HERE"
-    logger.info(test_msg)
-    
-    # 4. Check the recording
-    # We check if our unique message exists in the captured text
-    assert test_msg in caplog.text
-def test_requester_works():
-    """
-    Live Fire Test: Can we hit the internet?
-    If offline, we SKIP instead of FAILING.
-    """
+# ———— 2. REQUESTER TESTS (The Midfield) ————
+
+# 🚨 KEY CHANGE: We mock tls_client, NOT requests/httpx
+@patch("core.requester.tls_client.Session")
+def test_requester_initialization(mock_tls_session):
+    """Verify the Stealth Engine starts with Chrome 120 fingerprint."""
+    # 1. Init
     req = Requester()
     
-    # We use a timeout to fail fast if network is bad
-    r = req.get("https://httpbin.org/get", timeout=5)
+    # 2. Assert the Session was created with the right disguise
+    mock_tls_session.assert_called_with(
+        client_identifier="chrome_120",
+        random_tls_extension_order=True
+    )
+    # Check that our session attribute is actually the mock
+    assert req.session == mock_tls_session.return_value
 
-    # 🛡️ SAFETY CHECK: Did the request fail silently?
-    if r is None:
-        pytest.skip("⚠️ Network unreachable (Requester returned None). Skipping test.")
+@patch("core.requester.tls_client.Session")
+def test_requester_execution_flow(mock_session_cls):
+    """Test that req.get() correctly calls session.execute_request()."""
+    # Setup the Mock
+    mock_instance = mock_session_cls.return_value
+    
+    # Create a fake response object
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_instance.execute_request.return_value = mock_response
 
-    assert r.status_code == 200
-
-def test_no_github_leak_in_ua():
-    """Ensure we don't leak 'GitHub' or 'Sanchez' in headers."""
+    # Initialize
     req = Requester()
-    r = req.get("https://httpbin.org/headers", timeout=5)
-
-    # 🛡️ SAFETY CHECK 1: Connection
-    if r is None:
-        pytest.skip("⚠️ Network unreachable. Skipping UA leak test.")
-
-    # 🛡️ SAFETY CHECK 2: JSON Parsing
-    try:
-        data = r.json()
-    except Exception:
-        pytest.skip("⚠️ httpbin returned invalid JSON (Bad Gateway?). Skipping.")
-
-    ua = data.get("headers", {}).get("User-Agent", "")
     
-    forbidden = ["github", "sanchez", "arsenal", "python-requests"] 
-    # Note: python-requests might be there if you didn't set a UA, but usually we randomize it.
+    # Fire a shot
+    url = "https://example.com"
+    req.get(url, timeout=5)
     
-    leaked = [word for word in forbidden if word in ua.lower()]
-    assert not leaked, f"Identity leak detected! Found: {leaked} in UA: {ua}"
+    # Verify the Translation Layer worked:
+    # We passed 'timeout=5', but it should call with 'timeout_seconds=5'
+    mock_instance.execute_request.assert_called_once()
+    
+    call_kwargs = mock_instance.execute_request.call_args[1]
+    
+    # Check assertions
+    assert call_kwargs['method'] == "GET"
+    assert call_kwargs['url'] == url
+    assert call_kwargs['timeout_seconds'] == 5  # <--- vital check
+    assert 'timeout' not in call_kwargs        # <--- ensures we popped the bad arg
 
-def test_random_ua_rotation_when_enabled():
-    """Check if User-Agent changes between requests."""
-    # Force rotation ON for this test
-    original_setting = config.RANDOM_USER_AGENT
-    object.__setattr__(config, "RANDOM_USER_AGENT", True)
+# ———— 3. ENGINE TESTS (The Legs) ————
 
-    try:
-        req = Requester()
-        uas = set()
+def dummy_task(target, **kwargs):
+    """A dummy striker function."""
+    return f"Hit: {target}"
 
-        for i in range(3):
-            r = req.get("https://httpbin.org/user-agent", timeout=5)
-            
-            # 🛡️ SAFETY CHECK
-            if r is None:
-                continue # Try next request if one fails
-            
-            try:
-                ua = r.json().get("user-agent")
-                if ua:
-                    uas.add(ua)
-            except:
-                pass
+def test_engine_threading():
+    """Verify the engine actually runs tasks and returns results."""
+    targets = ["A", "B", "C"]
+    
+    # The engine is generic, so it doesn't care about tls_client details
+    results = engine.run(
+        task_function=dummy_task,
+        targets=targets,
+        session=None, # Mock/None is fine for dummy task
+        desc="Testing Engine"
+    )
+    
+    assert len(results) == 3
+    assert "Hit: A" in results
+    assert "Hit: B" in results
+    assert "Hit: C" in results
 
-        if len(uas) == 0:
-            pytest.skip("⚠️ Could not get any valid User-Agents from httpbin. Offline?")
-            
-        # If we got at least 2 different UAs, the system works.
-        # If we only got 1 valid response total, we can't blame the code.
-        if len(uas) >= 2:
-            assert True
-        else:
-            # If we only got 1 UA, we warn but don't fail unless we are sure connection was perfect
-            pass 
-
-    finally:
-        # Restore original setting
-        object.__setattr__(config, "RANDOM_USER_AGENT", original_setting)
+def test_engine_golden_goal():
+    """Verify the Golden Goal rule stops the match."""
+    # Setup
+    config.STOP_ON_SUCCESS = True
+    targets = range(100) # 100 targets
+    
+    # This task always returns a "Goal"
+    def scoring_task(t, **kwargs):
+        return "GOAL"
+    
+    results = engine.run(
+        task_function=scoring_task,
+        targets=targets,
+        session=None,
+        desc="Golden Goal Test"
+    )
+    
+    # It should NOT process all 100. It should stop early.
+    assert len(results) < 100 
+    
+    # Reset config
+    config.STOP_ON_SUCCESS = False

@@ -138,7 +138,7 @@ def _load_config() -> ArsenalConfig:
         BACKOFF=float(os.getenv("ARSENAL_BACKOFF", "1.5")),#Between those retries, it waits 1.5x longer each time.
         THREADS=int(os.getenv("ARSENAL_THREADS", "10")),
         DELAY=float(os.getenv("ARSENAL_DELAY", "0.1")),#This is the Sleep Time between every single request.configure this so that you don't get banned
-        RANDOM_USER_AGENT=os.getenv("ARSENAL_RANDOM_UA", "false").lower() == "true",#Every request wears a different "Jersey." One looks like Chrome on Windows, the next looks like Safari on iPhone. Harder for the ref (WAF) to track you.
+     
         VERIFY_SSL=os.getenv("ARSENAL_VERIFY_SSL", "false").lower() == "true",#In a lab environment, it's common to use self-signed certificates. Setting VERIFY_SSL to false allows you to bypass SSL verification, preventing those annoying certificate warnings.
         LOG_FILE=os.getenv("ARSENAL_LOG_FILE", "arsenal.log"),#This is the filename where the tool saves the receipts.
         USE_PROXY=os.getenv("ARSENAL_USE_PROXY", "true").lower() == "true",

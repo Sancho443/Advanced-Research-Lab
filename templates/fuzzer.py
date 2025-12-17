@@ -4,50 +4,66 @@ Module: Fuzzer (The Striker)
 Purpose: Active fuzzing for LFI, RCE, etc.
 """
 import sys
-import os
 import urllib.parse
 from pathlib import Path
 
-# ———— IMPORT FIX (The Band-Aid) ————
-# This allows 'python3 templates/fuzzer.py' to work
-sys.path.append(str(Path(__file__).resolve().parent)) 
-from base_template import get_base_parser, run_scan
+# ———— ROBUST IMPORT FIX ————
+root_path = Path(__file__).resolve().parent.parent
+if str(root_path) not in sys.path:
+    sys.path.append(str(root_path))
 
-# Link to Core
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+from templates.base_template import get_base_parser, run_scan
 from core import logger
 
-def check(target_input: str, base_url: str, req, **kwargs) -> str | None:
+def check(target_input: str, base_url: str, session, **kwargs) -> str | None:
     """
     The Attack Logic.
     """
-    # ———— 1. ENCODING (Crucial!) ————
-    # Remember the 400 Bad Request error? We fix it here.
+    # ———— 1. PAYLOAD PLACEMENT ————
     if "{PAYLOAD}" in base_url:
-        encoded_payload = urllib.parse.quote(target_input, safe='')
-        url = base_url.replace("{PAYLOAD}", encoded_payload)
+        # Injection Mode (e.g. ?id={PAYLOAD})
+        # We generally encode here to be safe, but LFI sometimes hates encoding.
+        # Let's trust the wordlist. If user wants encoded, use an encoded wordlist.
+        # But to prevent crashing the URL parser, we safely quote specific chars if needed.
+        # For now, let's inject RAW to allow power-user payloads like '../../'
+        url = base_url.replace("{PAYLOAD}", target_input)
     else:
-        # Append mode
-        url = f"{base_url}{target_input}"
+        # Append Mode (Directory Fuzzing)
+        if not base_url.endswith("/"):
+            base_url += "/"
+        # Strip leading slash from payload to avoid double //
+        payload = target_input.lstrip("/")
+        url = f"{base_url}{payload}"
 
     # ———— 2. FIRE ————
     try:
-        # req is the Persistent Engine passed from base_template
-        res = req.get(url, allow_redirects=False)
+        # session is the Persistent Engine passed from base_template
+        res = session.get(url, allow_redirects=False)
         
         if not res: return None
 
         # ———— 3. DETECTION ————
-        # LFI
-        if "root:x:0:0:" in res.text or "[boot loader]" in res.text:
-            return f"🔥 LFI FOUND: {url}"
         
-        # RCE
-        if "uid=" in res.text and "gid=" in res.text:
+        # LFI (Linux)
+        if "root:x:0:0:" in res.text:
+             return f"🔥 LFI FOUND (passwd): {url}"
+        
+        # LFI (Windows)
+        if "[boot loader]" in res.text or "win.ini" in res.text:
+             return f"🔥 LFI FOUND (win.ini): {url}"
+        
+        # RCE (Linux)
+        if "uid=" in res.text and "gid=" in res.text and "groups=" in res.text:
              return f"🚨 RCE CONFIRMED: {url}"
 
         # Error Based SQLi (Bonus)
-        if "You have an error in your SQL syntax" in res.text:
+        sql_errors = [
+            "You have an error in your SQL syntax",
+            "Warning: mysql_",
+            "Unclosed quotation mark",
+            "ORA-01756" 
+        ]
+        if any(err in res.text for err in sql_errors):
              return f"💉 SQLi HINT: {url}"
 
     except Exception:
@@ -56,15 +72,14 @@ def check(target_input: str, base_url: str, req, **kwargs) -> str | None:
     return None
 
 def main():
-    # We inherit the parser from the Mother Template
     parser = get_base_parser("FUZZER")
-    
-    # [TACTICAL NOTE]: If you wanted to add specific args just for Fuzzer,
-    # you would do: parser.add_argument("--fuzz-mode", ...) here.
-    
     args = parser.parse_args()
     
-    # Run the match
+    # Validation
+    if not args.wordlist:
+         logger.critical("❌ Fuzzer requires a payload wordlist (-w)!")
+         sys.exit(1)
+
     run_scan("FUZZER", check, args)
 
 if __name__ == "__main__":

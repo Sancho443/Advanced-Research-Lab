@@ -1,5 +1,5 @@
 # BUG_BOUNTY_ROUTINE
-
+# pytest tests/test_core.py -v 
 # 🐞 The Sanchez Bug Bounty Routine v2.0
 *Systematic intelligence gathering with surgical strikes*
 
