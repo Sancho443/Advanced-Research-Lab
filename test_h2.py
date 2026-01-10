@@ -1,60 +1,62 @@
 #!/usr/bin/env python3
 """
-Script: Verify H2
-Purpose: Taking the Ferrari for a spin on the Autobahn.
+Script: Verify H2 (The Reflection Test)
+Purpose: Taking the Ferrari for a spin to verify the gearbox.
 """
 import sys
 import os
+import json
 
 # 1. Hook up the framework
+# Navigate up from 'tests/' or wherever this script is
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '')))
 
 from core.requester import Requester
 from core.logger import logger
 from core.config import config
 
-# 2. Force the Engine to verify SSL (Real sites require valid SSL for H2)
-# We override the lab setting temporarily
+# 2. Force the Engine settings
+# tls_client negotiates H2 automatically if the "Chrome" profile supports it (it does).
 config.VERIFY_SSL = True 
-config.FORCE_HTTP2 = True      # <--- ADD THIS! FORCE THE SWITCH! 🟢
 
 def test_connection():
-    logger.info("🏎️  Warming up the HTTP/2 Engine...")
-    
-    # Initialize the Sanchez Requester
+    logger.info("🏎️  Warming up the Stealth Engine (Chrome 120)...")
     req = Requester()
 
-    # Target: Google (They invented HTTP/2 basically, so they definitely support it)
-    target = "https://0a0400040404510d805ff85a00e400a8.web-security-academy.net"
-    
+    # 1. New Target: Cloudflare Trace (Very reliable)
+    target = "https://cloudflare.com/cdn-cgi/trace"
     logger.info(f"🎯 Target locked: {target}")
     
-    # Fire the shot
-    # We expect the Requester to see "https" and "FORCE_HTTP2" logic (or auto-negotiate)
-    # Note: To guarantee H2, you can also set config.FORCE_HTTP2 = True locally
-    
+    # 2. Fire the shot
     res = req.get(target)
 
-    if res:
-        # Check specific protocol version on the response object
-        # httpx response has .http_version
-        # requests response does NOT have .http_version (usually)
+    if res and res.status_code == 200:
+        # Cloudflare returns plain text lines like:
+        # h=cloudflare.com
+        # ip=127.0.0.1
+        # http=http/2
         
-        try:
-            # If it's HTTPX (H2)
-            version = res.http_version
-            logger.info(f"✅ Protocol Used: {version}")
+        logger.info(f"✅ Response received ({len(res.text)} bytes)")
+        
+        # 3. Parse the text manually
+        if "http=http/2" in res.text:
+            logger.success("🔥 TEST PASSED: WE ARE DRIFTING ON HTTP/2! 🏎️💨")
+        elif "http=http/3" in res.text:
+            logger.success("🚀 TEST PASSED: HTTP/3 (Even Faster!)")
+        else:
+            # Extract the actual protocol line to see what happened
+            lines = res.text.splitlines()
+            proto = next((line for line in lines if line.startswith("http=")), "Unknown")
+            logger.warning(f"⚠️  Connected via {proto}. (Maybe the proxy downgraded us?)")
             
-            if version == "HTTP/2":
-                logger.success("🔥 TEST PASSED: WE ARE RUNNING ON HTTP/2!")
-            else:
-                logger.warning("⚠️  Connected, but using HTTP/1.1 (Did you install httpx[http2]?)")
-                
-        except AttributeError:
-            # If it's Requests (H1)
-            logger.warning("⚠️  Fallback Active: Response came from 'requests' (HTTP/1.1)")
+        # Debug: Show the raw trace info just in case
+        logger.debug(f"Trace Info:\n{res.text.strip()}")
+
     else:
-        logger.critical("❌ Connection Failed.")
+        logger.critical(f"❌ Connection Failed. Status: {res.status_code if res else 'None'}")
+        # If it fails, print the HTML again to see if we are still getting betting ads
+        if res:
+            logger.debug(res.text[:500]) # First 500 chars only
 
 if __name__ == "__main__":
     test_connection()

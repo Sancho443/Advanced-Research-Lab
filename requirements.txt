@@ -1,15 +1,19 @@
-# ———— Core Dependencies (The Starting XI) ————
-requests>=2.31.0      # The Engine. Handles all HTTP traffic.
-colorama>=0.4.6       # The Visuals. Makes logs green/red.
-urllib3>=2.0.0        # The Backbone. Handles SSL/Connection logic.
+# ———— Core Engine (The Starting XI) ————
+requests>=2.31.0      # HTTP Traffic
+urllib3>=2.0.0        # Connection Handling
+tenacity>=8.2.0       # Auto-Retries (The Resilience)
 
-# ———— Progress Bars (The Flair) ————
-tqdm>=4.66.0          # The Progress Bar. Makes scans look hacker-ish.
+# ———— AI & Data (The Tactics) ————
+google-genai>=1.0.0  # 🌟 NEW SIGNING: Google Gemini Pro
+openai>=1.0.0         # DeepSeek Compatible Client
+python-dotenv>=1.0.0  # Loading .env securely
+pydantic>=2.0.0       # Data Validation
 
-# ———— Testing & CI (Professionalism) ————
+# ———— Visuals (The Kit) ————
+colorama>=0.4.6       # Colors
+tqdm>=4.66.0          # Progress Bars
+
+# ———— Testing (The Training Ground) ————
 pytest>=8.3.0
 pytest-cov>=5.0.0
-
-# ———— Optional / Dev Tools (The Bench) ————
-# python-dotenv       # (Optional) If you want to load .env files later
-# pylint              # (Optional) For checking code quality
+# pylint              # Uncomment to enforce strict coding rules
