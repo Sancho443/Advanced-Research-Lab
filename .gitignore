@@ -1,7 +1,3 @@
-﻿venv/
-__pycache__/
-*.pyc
-.idea/
+node_modules/
+dist/
 .env
-arsenal.log
-.pytest_cache/
