@@ -1,3 +1,16 @@
+reseting the database
+export PGPASSWORD='password'
+psql -h localhost -U sanchez -d wallet_db -c "UPDATE wallets SET balance = 100.00 WHERE user_id = 101;"
+
+
+attack for numeric precison
+curl -X POST http://localhost:3000/wallet/transfer \
+-H "Content-Type: application/json" \
+-d '{"fromId": 101, "toId": 102, "amount": 0.009}'
+
+check the result
+curl -s http://localhost:3000/wallet/101
+
 📝 Create the Attack Script
 1. Create the file: Run this in your terminal (make sure you are in the ~/real-wallet-lab folder):
 
